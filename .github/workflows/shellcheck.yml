@@ -1,4 +1,4 @@
-name: shellcheck
+name: shellcheck and report
 
 on:
   workflow_call:
@@ -9,7 +9,7 @@ on:
         type: string
 
 jobs:
-  deploy:
+  shellcheck:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
@@ -33,11 +33,11 @@ jobs:
         id: shell-check
         run: |
           set +e
-          shellcheck ${{ steps.target-file-name.outputs.FILE_NAME }}
+          shellcheck ${{ steps.target-file-name.outputs.FILE_NAME }} &> result.txt
           echo "::set-output name=RESULT::$?"
           set -e
 
-      - name: Report the results
+      - name: Report the results with no problem
         uses: actions/github-script@v5
         # pull-request AND NO problem with the target script file
         if: ${{ (github.event_name == 'pull_request') && (steps.shell-check.outputs.RESULT == 0) }}
@@ -47,8 +47,14 @@ jobs:
             const output = `### CI/CD Results
             Hello, I'm kokoichi 👋
 
-            No problem found in your target script file.
-      - name: Report the results
+            No problem found in your target script file.`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+      - name: Report the results with problem
         uses: actions/github-script@v5
         # pull-request AND problem found in the target script file
         if: ${{ (github.event_name == 'pull_request') && (steps.shell-check.outputs.RESULT > 0) }}
@@ -57,10 +63,24 @@ jobs:
           script: |
             const output = `### CI/CD Results
             Hello, I'm kokoichi 👋
-            ${{ steps.shell-check.outputs.RESULT }}
 
             Problem found in your target script file.
-            Please check your file.
+            Please check your file.`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+      # Save results to the artifacts if error found
+      - name: Upload results when error found
+        if: ${{ steps.shell-check.outputs.RESULT > 0 }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: license
+          path: ./result.txt
+          if-no-files-found: error
+          retention-days: 3
       - name: Make the test fail when problem found
         if: ${{ steps.shell-check.outputs.RESULT > 0 }}
         run: exit 1
