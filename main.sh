@@ -97,6 +97,17 @@ do
         continue
     fi
 
+    # X <- Y, X <-- Y ==> X ->> Y
+    if [[ "$line" =~ ([^>]*)" <"-+" "([^>]*)([ ]*:[ ]*)(.*) ]]; then
+        one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]} : ${BASH_REMATCH[4]}"
+        write_with_indent "$one_line"
+        continue
+    elif [[ "$line" =~ ([^>]*)" <"-+" "([^>]*) ]]; then
+        one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]}"
+        write_with_indent "$one_line"
+        continue
+    fi
+
     write_with_indent "$line"
 done < $1
 
