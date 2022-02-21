@@ -22,6 +22,9 @@ is_in_uml=false
 indent="    "
 indent_level=0
 
+first_paticipant=""
+last_paticipant=""
+
 function init_file() {
     echo -n "" > "$OUTPUT_PATH"
 }
@@ -76,9 +79,22 @@ do
     if [[ "$line" =~ "participant "(.*)" "(.*) ]]; then
         one_line="participant ${BASH_REMATCH[1]} as ${BASH_REMATCH[2]}${NEW_LINE}${BASH_REMATCH[1]}"
         write_with_indent "$one_line"
+        if [[ "$first_paticipant" == "" ]]; then
+            first_paticipant="${BASH_REMATCH[1]}"
+        fi
+        last_paticipant="${BASH_REMATCH[1]}"
         continue
     fi
 
+    # divider: ==メニュー表示== -> note over a,b X
+    if [[ "$line" =~ "="=+(.+)"="=+ ]]; then
+        echo "pien"
+        one_line="note over ${first_paticipant},${last_paticipant}: ${BASH_REMATCH[1]}"
+        write_with_indent "$one_line"
+        continue
+    fi
+
+    # alt, opt conditions
     if [[ "$line" =~ ([ ]*)(alt|opt) ]]; then
         write_with_indent "$line"
         indent_level=$((indent_level+1))
