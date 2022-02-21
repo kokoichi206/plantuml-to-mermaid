@@ -15,6 +15,7 @@ OUTPUT_PATH="output.md"
 START_CODE_BLOCK='```'
 START_UML='plantuml'
 START_MERMAID='mermaid'
+NEW_LINE='<br />'
 
 line_count=0
 is_in_uml=false
@@ -70,7 +71,14 @@ do
     if [[ "$line" == "@enduml" ]]; then
         continue
     fi
-    
+
+    # partincipant
+    if [[ "$line" =~ "participant "(.*)" "(.*) ]]; then
+        one_line="participant ${BASH_REMATCH[1]} as ${BASH_REMATCH[2]}${NEW_LINE}${BASH_REMATCH[1]}"
+        write_with_indent "$one_line"
+        continue
+    fi
+
     if [[ "$line" =~ ([ ]*)(alt|opt) ]]; then
         write_with_indent "$line"
         indent_level=$((indent_level+1))
