@@ -24,6 +24,7 @@ indent_level=0
 
 first_paticipant=""
 last_paticipant=""
+right_paticipant=""
 
 function init_file() {
     echo -n "" > "$OUTPUT_PATH"
@@ -75,6 +76,18 @@ do
         continue
     fi
 
+    # user: actor X -> actor X
+    if [[ "$line" =~ ^"actor "(.*) ]]; then
+        one_line="actor ${BASH_REMATCH[1]}"
+        write_with_indent "$one_line"
+        if [[ "$first_paticipant" == "" ]]; then
+            first_paticipant="${BASH_REMATCH[1]}"
+        fi
+        last_paticipant="${BASH_REMATCH[1]}"
+        right_paticipant="${BASH_REMATCH[1]}"
+        continue
+    fi
+
     # partincipant
     if [[ "$line" =~ "participant "(.*)" "(.*) ]]; then
         one_line="participant ${BASH_REMATCH[1]} as ${BASH_REMATCH[2]}${NEW_LINE}${BASH_REMATCH[1]}"
@@ -83,12 +96,12 @@ do
             first_paticipant="${BASH_REMATCH[1]}"
         fi
         last_paticipant="${BASH_REMATCH[1]}"
+        right_paticipant="${BASH_REMATCH[1]}"
         continue
     fi
 
     # divider: ==メニュー表示== -> note over a,b X
     if [[ "$line" =~ "="=+(.+)"="=+ ]]; then
-        echo "pien"
         one_line="note over ${first_paticipant},${last_paticipant}: ${BASH_REMATCH[1]}"
         write_with_indent "$one_line"
         continue
@@ -114,10 +127,12 @@ do
     if [[ "$line" =~ ([^>]*)" "-+"> "([^>]*)([ ]*:[ ]*)(.*) ]]; then
         one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]} : ${BASH_REMATCH[4]}"
         write_with_indent "$one_line"
+        right_paticipant="${BASH_REMATCH[2]}"
         continue
     elif [[ "$line" =~ ([^>]*)" "-+"> "([^>]*) ]]; then
         one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]}"
         write_with_indent "$one_line"
+        right_paticipant="${BASH_REMATCH[2]}"
         continue
     fi
 
@@ -125,9 +140,18 @@ do
     if [[ "$line" =~ ([^>]*)" <"-+" "([^>]*)([ ]*:[ ]*)(.*) ]]; then
         one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]} : ${BASH_REMATCH[4]}"
         write_with_indent "$one_line"
+        right_paticipant="${BASH_REMATCH[2]}"
         continue
     elif [[ "$line" =~ ([^>]*)" <"-+" "([^>]*) ]]; then
         one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]}"
+        write_with_indent "$one_line"
+        right_paticipant="${BASH_REMATCH[2]}"
+        continue
+    fi
+
+    # note right: foo -> note right of X: foo
+    if [[ "$line" =~ "note right"([ ])*":"([ ])*(.*) ]]; then
+        one_line="note right of ${right_paticipant}: ${BASH_REMATCH[3]}"
         write_with_indent "$one_line"
         continue
     fi
