@@ -17,7 +17,6 @@ START_UML='plantuml'
 START_MERMAID='mermaid'
 NEW_LINE='<br />'
 
-line_count=0
 is_in_uml=false
 indent="    "
 indent_level=0
@@ -38,10 +37,10 @@ function make_indent() {
 }
 function write_with_indent() {
     make_indent
-    echo $1 >> "$OUTPUT_PATH"
+    echo "$1" >> "$OUTPUT_PATH"
 }
 
-while read line
+while read -r line
 do
     # detect the start of plantuml
     if [[ "$line" =~ ^"$START_CODE_BLOCK"([ ]?)("$START_UML"|"$START_MERMAID") ]]; then
@@ -157,5 +156,4 @@ do
     fi
 
     write_with_indent "$line"
-done < $1
-
+done < "$1"
