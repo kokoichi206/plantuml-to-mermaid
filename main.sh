@@ -7,8 +7,52 @@
 # Usage:
 #   bash main.sh <MARKDOWN_FILE_NAME>
 
-
+PROGRAM=$(basename "$0")
 OUTPUT_PATH="output.md"
+
+# ===== print usage =====
+function print_usage() {
+    echo "Usage: $PROGRAM [OPTION] FILE"
+    echo "  -h, --help, -help"
+    echo "      print manual"
+    echo "  -o <filename>, --output <filename>"
+    echo "      output filename"
+}
+usage_and_exit()
+{
+    print_usage
+    exit "$1"
+}
+
+# ======================
+# parse arguments (options)
+# ======================
+for i in "$@"; do
+    case $i in
+    -h | --help | -help)
+        usage_and_exit 0
+        ;;
+    -o | --output)
+        if [[ -z "$2" ]]; then
+            echo "option requires a file name -- $1"
+            usage_and_exit 1
+        fi
+        OUTPUT_PATH="$2"
+        shift 2
+        ;;
+    -*)
+        echo "Unknown option $1"
+        usage_and_exit 1
+        ;;
+    *)
+        if [[ -n "$1" ]] && [[ -f "$1" ]]; then
+            FILE="$1"
+            shift 1
+        fi
+        ;;
+    esac
+done
+
 # ======================
 # parse markdown file
 # ======================
@@ -156,4 +200,4 @@ do
     fi
 
     write_with_indent "$line"
-done < "$1"
+done < "$FILE"
