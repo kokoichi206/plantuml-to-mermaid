@@ -12,23 +12,35 @@ OUTPUT_PATH="output.md"
 # ======================
 # parse markdown file
 # ======================
-line_count=0
-is_in_uml=false
 START_CODE_BLOCK='```'
 START_UML='plantuml'
 START_MERMAID='mermaid'
+
+line_count=0
+is_in_uml=false
+indent="    "
+indent_level=0
+
 function init_file() {
     echo -n "" > "$OUTPUT_PATH"
 }
 init_file
+
+function make_indent() {
+    for ((i=0; i < "$indent_level"; i++)); do
+        echo -n "$indent" >> "$OUTPUT_PATH"
+    done
+}
+function write_with_indent() {
+    make_indent
+    echo $1 >> "$OUTPUT_PATH"
+}
 
 while read line
 do
     # detect the start of plantuml
     if [[ "$line" =~ ^"$START_CODE_BLOCK"([ ]?)("$START_UML"|"$START_MERMAID") ]]; then
         type=${BASH_REMATCH[2]}
-        echo $type
-        echo $START_UML
         if [[ "$type" == "$START_UML" ]]; then
             is_in_uml=true
             # write uml start
@@ -38,7 +50,6 @@ do
     fi
     # detect the end of plantuml
     if [[ "$line" =~ ^"$START_CODE_BLOCK"([ ]*)$ ]]; then
-        is_in_uml=false
         if "$is_in_uml"; then
             echo "$START_CODE_BLOCK" >> "$OUTPUT_PATH"
         fi
@@ -49,6 +60,31 @@ do
     if ! "$is_in_uml"; then
         continue
     fi
-    echo $line
+
+    if [[ "$line" == "@startuml" ]]; then
+        echo "%%{init: {'theme': 'forest' } }%%" >> "$OUTPUT_PATH"
+        echo "sequenceDiagram" >> "$OUTPUT_PATH"
+        indent_level=1
+        continue
+    fi
+    if [[ "$line" == "@enduml" ]]; then
+        continue
+    fi
+    
+    if [[ "$line" =~ ([ ]*)(alt|opt) ]]; then
+        write_with_indent "$line"
+        indent_level=$((indent_level+1))
+        continue
+    elif [[ "$line" =~ ([ ]*)(else) ]]; then
+        indent_level=$((indent_level-1))
+        write_with_indent "$line"
+        indent_level=$((indent_level+1))
+        continue
+    elif [[ "$line" =~ ([ ]*)(end) ]]; then
+        indent_level=$((indent_level-1))
+        write_with_indent "$line"
+        continue
+    fi
+    write_with_indent "$line"
 done < $1
 
