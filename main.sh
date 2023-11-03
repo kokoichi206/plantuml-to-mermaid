@@ -27,7 +27,8 @@ usage_and_exit()
 # ======================
 # parse arguments (options)
 # ======================
-for i in "$@"; do
+while (( "$#" )); do
+    i="$1"
     case $i in
     -h | --help | -help)
         usage_and_exit 0
@@ -186,12 +187,12 @@ do
 
     # X <- Y, X <-- Y ==> X ->> Y
     if [[ "$line" =~ ([^>]*)" <"-+" "([^>]*)([ ]*:[ ]*)(.*) ]]; then
-        one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]} : ${BASH_REMATCH[4]}"
+        one_line="${BASH_REMATCH[2]} ->> ${BASH_REMATCH[1]} : ${BASH_REMATCH[4]}"
         write_with_indent "$one_line"
         right_paticipant="${BASH_REMATCH[2]}"
         continue
     elif [[ "$line" =~ ([^>]*)" <"-+" "([^>]*) ]]; then
-        one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]}"
+        one_line="${BASH_REMATCH[2]} ->> ${BASH_REMATCH[1]}"
         write_with_indent "$one_line"
         right_paticipant="${BASH_REMATCH[2]}"
         continue
