@@ -27,7 +27,8 @@ usage_and_exit()
 # ======================
 # parse arguments (options)
 # ======================
-for i in "$@"; do
+while (( "$#" )); do
+    i="$1"
     case $i in
     -h | --help | -help)
         usage_and_exit 0
@@ -61,9 +62,11 @@ START_UML='plantuml'
 START_MERMAID='mermaid'
 NEW_LINE='<br />'
 
+found=false
 is_in_uml=false
 indent="    "
 indent_level=0
+line_number=0
 
 first_paticipant=""
 last_paticipant=""
@@ -86,6 +89,8 @@ function write_with_indent() {
 
 while read -r line
 do
+    line_number="$((line_number+1))"
+
     # detect the start of plantuml
     if [[ "$line" =~ ^"$START_CODE_BLOCK"([ ]?)("$START_UML"|"$START_MERMAID") ]]; then
         type=${BASH_REMATCH[2]}
@@ -94,6 +99,7 @@ do
             # write uml start
             echo "$START_CODE_BLOCK $START_MERMAID" >> "$OUTPUT_PATH"
         fi
+        found=true
         continue
     fi
     # detect the end of plantuml
@@ -109,7 +115,7 @@ do
         continue
     fi
 
-    if [[ "$line" == "@startuml" ]]; then
+    if [[ "$line" == "@startuml"* ]]; then
         echo "%%{init: {'theme': 'forest' } }%%" >> "$OUTPUT_PATH"
         echo "sequenceDiagram" >> "$OUTPUT_PATH"
         indent_level=1
@@ -181,12 +187,12 @@ do
 
     # X <- Y, X <-- Y ==> X ->> Y
     if [[ "$line" =~ ([^>]*)" <"-+" "([^>]*)([ ]*:[ ]*)(.*) ]]; then
-        one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]} : ${BASH_REMATCH[4]}"
+        one_line="${BASH_REMATCH[2]} ->> ${BASH_REMATCH[1]} : ${BASH_REMATCH[4]}"
         write_with_indent "$one_line"
         right_paticipant="${BASH_REMATCH[2]}"
         continue
     elif [[ "$line" =~ ([^>]*)" <"-+" "([^>]*) ]]; then
-        one_line="${BASH_REMATCH[1]} ->> ${BASH_REMATCH[2]}"
+        one_line="${BASH_REMATCH[2]} ->> ${BASH_REMATCH[1]}"
         write_with_indent "$one_line"
         right_paticipant="${BASH_REMATCH[2]}"
         continue
@@ -199,5 +205,15 @@ do
         continue
     fi
 
-    write_with_indent "$line"
+    if [ -n "$line" ] && "$is_in_uml"; then
+        echo "$FILE: line $line_number: unknown line"
+        exit 1
+    else
+        echo "" >> "$OUTPUT_PATH"
+    fi
 done < "$FILE"
+
+if ! "$found"; then
+    echo "No plantuml code found."
+    echo "The plantuml code must be surrounded by \"\`\`\`plantuml\" and \"\`\`\`\"."
+fi
